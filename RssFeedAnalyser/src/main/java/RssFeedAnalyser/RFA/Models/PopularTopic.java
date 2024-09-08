@@ -3,16 +3,15 @@ package RssFeedAnalyser.RFA.Models;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.util.List;
 
+
 @Data
 @AllArgsConstructor
 @NoArgsConstructor
-@Builder
 @Entity
 public class PopularTopic {
     @Id
@@ -26,4 +25,15 @@ public class PopularTopic {
     @JoinTable(name = "popular_topic_news_article",
     joinColumns = @JoinColumn(name = "popular_topic_id"))
     private List<NewsArticle> newsArticles;
+
+    private PopularTopic(String topic, List<NewsArticle> newsArticles)
+    {
+        this.topic = topic;
+        this.newsArticles = newsArticles;
+    }
+
+    public static PopularTopic buildPopularTopic(String topic, List<NewsArticle> newsArticles)
+    {
+        return new PopularTopic(topic, newsArticles);
+    }
 }

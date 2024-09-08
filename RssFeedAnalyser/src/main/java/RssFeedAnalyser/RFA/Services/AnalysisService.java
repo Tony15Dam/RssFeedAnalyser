@@ -1,6 +1,5 @@
 package RssFeedAnalyser.RFA.Services;
 
-import RssFeedAnalyser.RFA.Constants.Constants;
 import RssFeedAnalyser.RFA.Models.AnalysisResult;
 import RssFeedAnalyser.RFA.Models.NewsArticle;
 import RssFeedAnalyser.RFA.Models.PopularTopic;
@@ -11,8 +10,12 @@ import com.rometools.rome.io.SyndFeedInput;
 import com.rometools.rome.io.XmlReader;
 import lombok.NoArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.io.ClassPathResource;
 import org.springframework.stereotype.Service;
 
+import java.io.BufferedReader;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.*;
 import java.util.stream.Collectors;
@@ -29,6 +32,7 @@ public class AnalysisService {
     {
         Set<String> allTopicsSet = new HashSet<>();
         Map<String, Set<NewsArticle>> topicsMap = new HashMap<>();
+        Set<String> stopWords = loadStopWords();
 
         for (String url: urls)
         {
@@ -40,12 +44,12 @@ public class AnalysisService {
                 String title = entry.getTitle();
                 String link = entry.getLink();
                 List<String> entryTopics = parseNounsFromTitle(title.toLowerCase());
-                NewsArticle newsArticle = buildNewsArticle(title, link);
+                NewsArticle newsArticle = NewsArticle.buildNewsArticle(title, link);
 
 
                 for (String topic: entryTopics)
                 {
-                    if(!Constants.stopWords.contains(topic))
+                    if(!stopWords.contains(topic))
                     {
                         allTopicsSet.add(topic);
                         if (!topicsMap.containsKey(topic))
@@ -60,17 +64,26 @@ public class AnalysisService {
 
         List<PopularTopic> popularTopicsList = buildPopularTopicsList(allTopicsSet, topicsMap);
         UUID uuid = generateAnalysisUUID();
-        saveAnalysisResult(popularTopicsList, uuid);
+        saveAnalysisResult(uuid, popularTopicsList);
 
         return uuid;
     }
 
-    private NewsArticle buildNewsArticle(String title, String link)
-    {
-        return NewsArticle.builder()
-                .title(title)
-                .link(link)
-                .build();
+    private Set<String> loadStopWords() throws Exception {
+        Set<String> stopWords = new HashSet<>();
+
+        // Load the stopwords.txt file from resources
+        InputStream resource = new ClassPathResource("stopwords.txt").getInputStream();
+        BufferedReader reader = new BufferedReader(new InputStreamReader(resource));
+
+        String line;
+        while ((line = reader.readLine()) != null)
+        {
+            stopWords.add(line.trim().toLowerCase());
+        }
+        reader.close();
+
+        return stopWords;
     }
 
     private List<String> parseNounsFromTitle(String title)
@@ -103,12 +116,15 @@ public class AnalysisService {
         List<PopularTopic> popularTopicsList = new ArrayList<>();
         for (String topic: popularTopicsStrings)
         {
-            PopularTopic popularTopic = PopularTopic.builder()
-                    .topic(topic)
-                    .newsArticles(topicsMap.get(topic).stream().toList())
-                    .build();
+            final Integer overlaps = topicsMap.get(topic).size() - 1;
+            // Only build topics that have overlaps, i.e. more than one newsArticle
+            if (overlaps > 0)
+            {
+                PopularTopic popularTopic = PopularTopic
+                        .buildPopularTopic(topic, topicsMap.get(topic).stream().toList());
 
-            popularTopicsList.add(popularTopic);
+                popularTopicsList.add(popularTopic);
+            }
         }
         return popularTopicsList;
     }
@@ -118,17 +134,9 @@ public class AnalysisService {
         return UUID.randomUUID();
     }
 
-    private AnalysisResult buildAnalysisResultEntity(List<PopularTopic> popularTopicList, UUID uuid)
+    private void saveAnalysisResult(UUID uuid, List<PopularTopic> popularTopicList)
     {
-        return AnalysisResult.builder()
-                .uuid(uuid)
-                .popularTopics(popularTopicList)
-                .build();
-    }
-
-    private void saveAnalysisResult(List<PopularTopic> popularTopicList, UUID uuid)
-    {
-        AnalysisResult analysisResult = buildAnalysisResultEntity(popularTopicList, uuid);
+        AnalysisResult analysisResult = AnalysisResult.buildAnalysisResult(uuid, popularTopicList);
         analysisResultRepository.save(analysisResult);
     }
 }

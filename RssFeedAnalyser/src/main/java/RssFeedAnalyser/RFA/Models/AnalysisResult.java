@@ -23,4 +23,15 @@ public class AnalysisResult {
     @OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     @JoinColumn(name = "analysis_result_id")
     private List<PopularTopic> popularTopics;
+
+    private AnalysisResult(UUID uuid, List<PopularTopic> popularTopics)
+    {
+        this.uuid = uuid;
+        this.popularTopics = popularTopics;
+    }
+
+    public static AnalysisResult buildAnalysisResult(UUID uuid, List<PopularTopic> popularTopics)
+    {
+        return new AnalysisResult(uuid, popularTopics);
+    }
 }
