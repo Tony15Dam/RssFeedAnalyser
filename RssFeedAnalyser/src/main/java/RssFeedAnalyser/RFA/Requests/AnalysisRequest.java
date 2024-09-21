@@ -10,6 +10,5 @@ import java.util.List;
 @Data
 public class AnalysisRequest {
 
-    @Size(min = 2, message = "At least two URLs must be provided")
     private List<String> urls;
 }

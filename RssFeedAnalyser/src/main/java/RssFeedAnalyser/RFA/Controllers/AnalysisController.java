@@ -23,24 +23,11 @@ public class AnalysisController {
     private AnalysisService analysisService;
 
     @PostMapping
-    public ResponseEntity<AnalysisResponse> analysis(@Valid @RequestBody AnalysisRequest requestBody)
+    public ResponseEntity<AnalysisResponse> analysis(@RequestBody AnalysisRequest requestBody)
     {
         List<String> urls = requestBody.getUrls();
-        AnalysisResponse analysisResponse;
-        UUID analysisId = null;
-
-        try
-        {
-            analysisId = analysisService.AnalyseFeeds(urls);
-        }
-        catch (Exception e)
-        {
-            System.out.println("Exception thrown: " + e.getMessage());
-            AnalysisResponse errorResponse = new AnalysisResponse(analysisId);
-            return new ResponseEntity<AnalysisResponse>(errorResponse, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-
-        analysisResponse = new AnalysisResponse(analysisId);
+        UUID analysisId = analysisService.AnalyseFeeds(urls);
+        AnalysisResponse analysisResponse = new AnalysisResponse(analysisId);
         return new ResponseEntity<AnalysisResponse>(analysisResponse, HttpStatus.OK);
     }
 }

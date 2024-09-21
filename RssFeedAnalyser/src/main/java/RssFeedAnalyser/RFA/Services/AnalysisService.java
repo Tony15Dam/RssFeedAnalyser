@@ -1,9 +1,12 @@
 package RssFeedAnalyser.RFA.Services;
 
+import RssFeedAnalyser.RFA.Exception.CustomInternalException;
+import RssFeedAnalyser.RFA.Exception.SizeLimitMinimumException;
 import RssFeedAnalyser.RFA.Models.AnalysisResult;
 import RssFeedAnalyser.RFA.Models.NewsArticle;
 import RssFeedAnalyser.RFA.Models.PopularTopic;
 import RssFeedAnalyser.RFA.Repositories.AnalysisResultRepository;
+import RssFeedAnalyser.RFA.Validation.AnalysisRequestValidator;
 import com.rometools.rome.feed.synd.SyndEntry;
 import com.rometools.rome.feed.synd.SyndFeed;
 import com.rometools.rome.io.SyndFeedInput;
@@ -27,17 +30,29 @@ public class AnalysisService {
     private static final int numberOfStoredTopics = 3;
     @Autowired
     private AnalysisResultRepository analysisResultRepository;
+    @Autowired
+    private AnalysisRequestValidator analysisRequestValidator;
 
-    public UUID AnalyseFeeds(List<String> urls) throws Exception
+    public UUID AnalyseFeeds(List<String> urls) throws CustomInternalException, SizeLimitMinimumException
     {
         Set<String> allTopicsSet = new HashSet<>();
         Map<String, Set<NewsArticle>> topicsMap = new HashMap<>();
         Set<String> stopWords = loadStopWords();
+        SyndFeed feed;
+
+        analysisRequestValidator.validateAnalysisRequest(urls);
 
         for (String url: urls)
         {
-            URL feedUrl = new URL(url);
-            SyndFeed feed = new SyndFeedInput().build(new XmlReader(feedUrl));
+            try
+            {
+                URL feedUrl = new URL(url);
+                feed = new SyndFeedInput().build(new XmlReader(feedUrl));
+            }
+            catch (Exception e)
+            {
+                throw new CustomInternalException(e.getMessage());
+            }
 
             for (SyndEntry entry: feed.getEntries())
             {
@@ -69,19 +84,23 @@ public class AnalysisService {
         return uuid;
     }
 
-    private Set<String> loadStopWords() throws Exception {
+    private Set<String> loadStopWords() throws CustomInternalException{
         Set<String> stopWords = new HashSet<>();
+        try
+        {// Load the stopwords.txt file from resources
+            InputStream resource = new ClassPathResource("stopwords.txt").getInputStream();
+            BufferedReader reader = new BufferedReader(new InputStreamReader(resource));
 
-        // Load the stopwords.txt file from resources
-        InputStream resource = new ClassPathResource("stopwords.txt").getInputStream();
-        BufferedReader reader = new BufferedReader(new InputStreamReader(resource));
-
-        String line;
-        while ((line = reader.readLine()) != null)
-        {
-            stopWords.add(line.trim().toLowerCase());
+            String line;
+            while ((line = reader.readLine()) != null) {
+                stopWords.add(line.trim().toLowerCase());
+            }
+            reader.close();
         }
-        reader.close();
+        catch (Exception e)
+        {
+            throw new CustomInternalException(e.getMessage());
+        }
 
         return stopWords;
     }

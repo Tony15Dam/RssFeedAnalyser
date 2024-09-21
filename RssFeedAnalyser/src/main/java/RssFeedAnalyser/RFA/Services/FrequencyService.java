@@ -1,5 +1,6 @@
 package RssFeedAnalyser.RFA.Services;
 
+import RssFeedAnalyser.RFA.Exception.NoAnalysisIdException;
 import RssFeedAnalyser.RFA.Models.AnalysisResult;
 import RssFeedAnalyser.RFA.Models.PopularTopic;
 import RssFeedAnalyser.RFA.Repositories.AnalysisResultRepository;
@@ -15,12 +16,12 @@ public class FrequencyService {
     @Autowired
    private AnalysisResultRepository analysisResultRepository;
 
-    public List<PopularTopic> getAnalysisResult(UUID uuid) throws Exception
+    public List<PopularTopic> getAnalysisResult(UUID uuid) throws NoAnalysisIdException
     {
         AnalysisResult analysisResult = analysisResultRepository.findByUuid(uuid);
         if (analysisResult == null)
         {
-            throw new NoSuchElementException("Could not find analysisResult with UUID" + uuid + " ");
+            throw new NoAnalysisIdException("Could not find analysisResult with UUID" + uuid + " ");
         }
         return analysisResult.getPopularTopics();
     }

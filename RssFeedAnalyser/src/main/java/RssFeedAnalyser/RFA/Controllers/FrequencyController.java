@@ -24,21 +24,8 @@ public class FrequencyController {
     @GetMapping("/{uuid}")
     public ResponseEntity<FrequencyResponse> getPopularTopics(@PathVariable UUID uuid)
     {
-        List<PopularTopic> popularTopics = null;
-        HttpStatus httpStatus = HttpStatus.OK;
-
-        try
-        {
-            popularTopics = frequencyService.getAnalysisResult(uuid);
-        }
-        catch (Exception e)
-        {
-            System.out.println("Frequency controller exception: " + e.getMessage());
-            FrequencyResponse errorResponse = new FrequencyResponse(popularTopics);
-            return new ResponseEntity<FrequencyResponse>(errorResponse, HttpStatus.NOT_FOUND);
-        }
-
+        List<PopularTopic> popularTopics = frequencyService.getAnalysisResult(uuid);
         FrequencyResponse frequencyResponse = new FrequencyResponse(popularTopics);
-        return new ResponseEntity<FrequencyResponse>(frequencyResponse, httpStatus);
+        return new ResponseEntity<FrequencyResponse>(frequencyResponse, HttpStatus.OK);
     }
 }
